@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aflac - Shares Outstanding</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body { padding: 20px; }
+        h1 { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h1 id="share-entity-name">Aflac</h1>
+    <div class="container">
+        <h2>Shares Outstanding Data</h2>
+        <p><strong>Max Shares Value:</strong> <span id="share-max-value"></span> (Fiscal Year: <span id="share-max-fy"></span>)</p>
+        <p><strong>Min Shares Value:</strong> <span id="share-min-value"></span> (Fiscal Year: <span id="share-min-fy"></span>)</p>
+    </div>
+    <script>
+        // Function to fetch data from SEC API
+        async function fetchData(cik) {
+            const response = await fetch(`https://data.sec.gov/api/xbrl/companyconcept/CIK${cik}/dei/EntityCommonStockSharesOutstanding.json`, {
+                headers: { 'User-Agent': 'MyApp - Fetching SEC Data' }
+            });
+            const data = await response.json();
+            return data;
+        }
+
+        // Function to process shares data
+        function processSharesData(data) {
+            const entityName = data.entityName;
+            const units = data.units.shares;
+            let max = { val: -Infinity, fy: "" };
+            let min = { val: Infinity, fy: "" };
+
+            // Filtering and finding max/min values
+            units.forEach((entry) => {
+                if (entry.fy > "2020" && typeof entry.val === 'number') {
+                    if (entry.val > max.val) {
+                        max = { val: entry.val, fy: entry.fy };
+                    }
+                    if (entry.val < min.val) {
+                        min = { val: entry.val, fy: entry.fy };
+                    }
+                }
+            });
+
+            // Updating the DOM
+            document.getElementById('share-entity-name').textContent = entityName;
+            document.getElementById('share-max-value').textContent = max.val;
+            document.getElementById('share-max-fy').textContent = max.fy;
+            document.getElementById('share-min-value').textContent = min.val;
+            document.getElementById('share-min-fy').textContent = min.fy;
+
+            // Updating title
+            document.title = `${entityName} - Shares Outstanding`;
+        }
+
+        // Main function to initialize the app
+        async function init() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const cik = urlParams.get('CIK') || '0000004977'; // Default to Aflac's CIK
+            const data = await fetchData(cik);
+            processSharesData(data);
+        }
+
+        // Run the initialization
+        init();
+    </script>
+</body>
+</html>
